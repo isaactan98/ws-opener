@@ -72,7 +72,7 @@ export default {
         alert("Phone Number is required");
         return;
       } else {
-        window.open(`whatsapp://send?phone=${this.phone}&text=Hello%20World!`);
+        window.open(`whatsapp://send?phone=${this.phone}&text=`);
       }
     },
     clearInput() {
