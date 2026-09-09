@@ -1,3 +1,94 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-hull text-paper font-display antialiased;
+  }
+
+  /* One focus treatment for the whole app: an LCD-green ring. */
+  :focus-visible {
+    outline: 2px solid theme("colors.lcd.DEFAULT");
+    outline-offset: 2px;
+  }
+
+  /* Preflight sets a cold #9ca3af here, which is both the only cool hue in a
+     warm palette and bright enough that an empty field reads as a filled one. */
+  input::placeholder,
+  textarea::placeholder {
+    color: theme("colors.muted");
+    opacity: 0.4;
+  }
+}
+
+@layer components {
+  /* The backlight spills onto the surrounding surface once the line is live.
+     It is the only thing filling the space around the column, so it stays
+     faint enough to read as light rather than as a panel. */
+  .stage {
+    @apply relative isolate;
+  }
+
+  .stage::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 -z-10;
+    background: radial-gradient(
+      64% 46% at 50% 60%,
+      rgb(198 217 107 / 0.11),
+      transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 620ms ease;
+  }
+
+  .stage--lit::before {
+    opacity: 1;
+  }
+
+  /* The signature element: a backlit LCD slab. Dark when there is nothing
+     to show, lit the moment digits arrive. */
+  .lcd {
+    @apply relative overflow-hidden rounded-md px-4 py-4;
+    background-color: theme("colors.lcd.off");
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+    transition: background-color 340ms ease, box-shadow 340ms ease;
+  }
+
+  .lcd--lit {
+    background-color: theme("colors.lcd.DEFAULT");
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35),
+      0 0 34px -8px rgb(198 217 107 / 0.55);
+  }
+
+  /* All-segments-on row for the idle display only. It is never drawn behind or
+     beside a real number, so it can't be mistaken for digits that would be
+     dialled. Kept above 3:1 so it survives direct sunlight. */
+  .lcd__ghost {
+    @apply pointer-events-none select-none;
+    color: #7f8c4e;
+  }
+
+  .lcd__value {
+    color: theme("colors.lcd.dim");
+    transition: color 340ms ease;
+  }
+
+  .lcd--lit .lcd__value {
+    color: theme("colors.lcd.ink");
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
