@@ -1,16 +1,24 @@
 <template>
+  <!-- Top-aligned, not centred: a centred column jumps up the moment the
+       phone keyboard opens, on every single use. -->
   <main
-    class="stage grid min-h-[100svh] place-items-center bg-hull px-6 py-14"
+    class="stage min-h-[100svh] bg-hull px-6 pb-14 pt-[clamp(2.5rem,10vh,6rem)]"
     :class="{ 'stage--lit': hasDigits }"
   >
-    <div class="w-full max-w-[30rem]">
+    <form
+      class="mx-auto w-full min-w-0 max-w-[30rem]"
+      novalidate
+      @submit.prevent="openChat"
+    >
+      <!-- The pitch is for the first visit. Once the keyboard is up the user is
+           mid-task and needs the controls, not the headline. -->
       <h1
-        class="animate-rise text-[clamp(2.25rem,10vw,3.25rem)] font-bold leading-[0.95] tracking-[-0.035em]"
+        class="text-[clamp(2.25rem,10vw,3.25rem)] font-bold leading-[0.95] tracking-[-0.035em] [@media(max-height:640px)]:hidden"
       >
         Open a chat<br />without saving<br />the number.
       </h1>
 
-      <div class="animate-rise mt-11" style="animation-delay: 80ms">
+      <div class="mt-11 [@media(max-height:640px)]:mt-0">
         <label
           for="phone"
           class="block font-mono text-[11px] uppercase tracking-[0.16em] text-muted"
@@ -27,7 +35,7 @@
           autocomplete="tel"
           spellcheck="false"
           placeholder="628123456789"
-          class="mt-3 w-full rounded-md border bg-hull-raised px-4 py-3.5 font-mono text-lg tracking-[0.06em] text-paper transition-colors duration-200 placeholder:text-muted/35 hover:border-muted/60"
+          class="mt-3 w-full rounded-md border bg-hull-raised px-4 py-3.5 font-mono text-lg tracking-[0.06em] text-paper transition-colors duration-200 hover:border-muted/60"
           :class="
             error
               ? 'border-signal focus-visible:outline-signal'
@@ -37,9 +45,12 @@
           aria-describedby="phone-hint phone-error"
         />
 
-        <p id="phone-hint" class="mt-2.5 text-[13px] leading-snug text-muted">
-          Country code first, no leading zero. Spaces, dashes and
-          <span class="font-mono">+</span> are dropped as you type.
+        <p
+          id="phone-hint"
+          class="mt-2.5 text-[13px] leading-snug text-muted [@media(max-height:640px)]:hidden"
+        >
+          Country code first, no leading zero. Paste it however it came —
+          spaces, dashes and <span class="font-mono">+</span> are ignored.
         </p>
 
         <p
@@ -55,8 +66,7 @@
       <!-- Clipboard tray: the fastest path from a copied number to a chat. -->
       <div
         v-if="copied !== ''"
-        class="animate-rise mt-5 rounded-md border border-lcd/35 bg-hull-raised p-4"
-        style="animation-delay: 120ms"
+        class="mt-5 rounded-md border border-lcd/35 bg-hull-raised p-4"
       >
         <p class="font-mono text-[11px] uppercase tracking-[0.16em] text-lcd">
           On your clipboard
@@ -67,7 +77,7 @@
           </p>
           <button
             type="button"
-            class="flex shrink-0 items-center gap-2 rounded bg-lcd px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-hull transition-colors duration-200 hover:bg-lcd-bright"
+            class="flex shrink-0 items-center gap-2 rounded bg-lcd px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-hull transition-colors duration-200 hover:bg-lcd-bright active:bg-lcd-bright"
             @click="pasteText"
           >
             <svg
@@ -91,52 +101,51 @@
       </div>
 
       <!-- Signature: the readout. Shows the exact digits WhatsApp receives. -->
-      <div class="animate-rise mt-8" style="animation-delay: 160ms">
+      <div class="mt-8 [@media(max-height:640px)]:mt-4">
         <div class="flex items-baseline justify-between gap-4">
           <p
             class="font-mono text-[11px] uppercase tracking-[0.16em] text-muted"
           >
             WhatsApp will dial
           </p>
-          <p class="font-mono text-[11px] tracking-[0.06em] text-muted">
-            {{ hasDigits ? `${phone.length} digits` : "—" }}
+          <p
+            v-if="hasDigits"
+            class="font-mono text-[11px] tracking-[0.06em] text-muted"
+          >
+            {{ dialled.length }} digits
           </p>
         </div>
 
         <div class="lcd mt-3" :class="{ 'lcd--lit': hasDigits }">
           <p
-            class="lcd__ghost font-mono text-[clamp(1.25rem,6.2vw,1.75rem)] tracking-[0.12em]"
-            aria-hidden="true"
+            class="lcd__value min-w-0 break-all font-mono text-[clamp(1.25rem,6.2vw,1.75rem)] tracking-[0.12em]"
           >
-            {{ GHOST }}
-          </p>
-          <!-- Empty shows the ghost row alone, the way an idle display looks. -->
-          <p
-            class="lcd__value font-mono text-[clamp(1.25rem,6.2vw,1.75rem)] tracking-[0.12em]"
-          >
-            {{ phone }}<span v-if="!hasDigits" class="invisible">8</span>
+            <!-- The all-segments-on row belongs to the idle display only. Behind
+                 a real number it reads as digits WhatsApp would dial, which is
+                 the one thing this readout exists to rule out. -->
+            <span v-if="hasDigits">{{ dialled }}</span>
+            <span v-else class="lcd__ghost" aria-hidden="true">{{ GHOST }}</span>
           </p>
         </div>
       </div>
 
-      <div class="animate-rise mt-8 flex gap-3" style="animation-delay: 240ms">
+      <div class="mt-8 flex gap-3 [@media(max-height:640px)]:mt-4">
         <span class="sr-only" aria-live="polite">{{ readoutStatus }}</span>
         <button
-          type="button"
-          class="flex-1 rounded-md bg-lcd px-5 py-3.5 text-[15px] font-semibold tracking-[-0.01em] text-hull transition-colors duration-200 hover:bg-lcd-bright"
-          @click="openChat"
+          type="submit"
+          class="flex-1 rounded-md bg-lcd px-5 py-3.5 text-[15px] font-semibold tracking-[-0.01em] text-hull transition-colors duration-200 hover:bg-lcd-bright active:bg-lcd-bright"
         >
           Open chat
         </button>
         <button
           type="button"
-          class="rounded-md border border-rule px-5 py-3.5 text-[15px] font-medium text-muted transition-colors duration-200 hover:border-muted hover:text-paper"
+          class="rounded-md border border-rule px-5 py-3.5 text-[15px] font-medium text-muted transition-colors duration-200 hover:border-muted hover:text-paper active:border-muted active:text-paper"
           @click="clearInput"
         >
           Clear
         </button>
       </div>
-    </div>
+    </form>
   </main>
 </template>
 
@@ -144,32 +153,34 @@
 import { computed, onMounted, ref, watch } from "vue";
 
 // An all-segments-on row, the way an idle LCD shows its unused segments.
-const GHOST = "8".repeat(15);
+const GHOST = "8".repeat(13);
 
 const phone = ref("");
 const copied = ref("");
 const error = ref("");
 const inputEl = ref<HTMLInputElement | null>(null);
 
-const hasDigits = computed(() => phone.value.length > 0);
-const readoutStatus = computed(() =>
-  hasDigits.value
-    ? `WhatsApp will dial ${phone.value.split("").join(" ")}. ${
-        phone.value.length
-      } digits.`
-    : "No number entered yet."
-);
-
-// Strip the characters numbers arrive with, live, so the readout always
-// shows what WhatsApp actually receives.
+// Strip the characters phone numbers arrive punctuated with.
 function normalize(value: string) {
   return value.replace(/[\s+\-()]/g, "");
 }
 
-watch(phone, (value) => {
-  const cleaned = normalize(value);
-  if (cleaned !== value) phone.value = cleaned;
-  if (cleaned !== "") error.value = "";
+// The field keeps what the user actually pasted, so they can check it against
+// wherever it came from. Only the readout and the link get the dialled form —
+// which is what makes the readout worth looking at.
+const dialled = computed(() => normalize(phone.value));
+const hasDigits = computed(() => dialled.value.length > 0);
+
+const readoutStatus = computed(() =>
+  hasDigits.value
+    ? `WhatsApp will dial ${dialled.value.split("").join(" ")}. ${
+        dialled.value.length
+      } digits.`
+    : "No number entered yet."
+);
+
+watch(phone, () => {
+  if (dialled.value !== "") error.value = "";
 });
 
 // Reading the clipboard needs permission and a secure context, and several
@@ -188,12 +199,12 @@ onMounted(async () => {
 });
 
 function openChat() {
-  if (phone.value === "") {
+  if (dialled.value === "") {
     error.value = "Enter a phone number first.";
     inputEl.value?.focus();
     return;
   }
-  window.open(`whatsapp://send?phone=${phone.value}&text=`);
+  window.open(`whatsapp://send?phone=${dialled.value}&text=`);
 }
 
 function clearInput() {
@@ -205,7 +216,7 @@ function clearInput() {
 async function pasteText() {
   const text = await readClipboard();
   if (!text) return;
-  phone.value = normalize(text);
+  phone.value = text;
   // Clear the clipboard so the same number is not suggested again.
   try {
     await navigator.clipboard.writeText("");

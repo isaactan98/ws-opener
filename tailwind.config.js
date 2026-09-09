@@ -31,15 +31,6 @@ module.exports = {
         display: ["Archivo", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["DM Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
-      keyframes: {
-        rise: {
-          from: { opacity: "0", transform: "translateY(10px)" },
-          to: { opacity: "1", transform: "none" },
-        },
-      },
-      animation: {
-        rise: "rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both",
-      },
     },
   },
   plugins: [],

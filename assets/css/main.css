@@ -16,6 +16,14 @@
     outline: 2px solid theme("colors.lcd.DEFAULT");
     outline-offset: 2px;
   }
+
+  /* Preflight sets a cold #9ca3af here, which is both the only cool hue in a
+     warm palette and bright enough that an empty field reads as a filled one. */
+  input::placeholder,
+  textarea::placeholder {
+    color: theme("colors.muted");
+    opacity: 0.4;
+  }
 }
 
 @layer components {
@@ -57,20 +65,15 @@
       0 0 34px -8px rgb(198 217 107 / 0.55);
   }
 
-  /* All-segments-on ghost row, the way a real LCD shows its unused segments. */
+  /* All-segments-on row for the idle display only. It is never drawn behind or
+     beside a real number, so it can't be mistaken for digits that would be
+     dialled. Kept above 3:1 so it survives direct sunlight. */
   .lcd__ghost {
-    @apply pointer-events-none absolute inset-x-4 select-none;
-    color: theme("colors.lcd.dim");
-    opacity: 0.35;
-  }
-
-  .lcd--lit .lcd__ghost {
-    color: theme("colors.lcd.ink");
-    opacity: 0.16;
+    @apply pointer-events-none select-none;
+    color: #7f8c4e;
   }
 
   .lcd__value {
-    @apply relative;
     color: theme("colors.lcd.dim");
     transition: color 340ms ease;
   }
