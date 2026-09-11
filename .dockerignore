@@ -1,0 +1,27 @@
+# Keep the build context small, and keep local build output from poisoning the
+# image: a stale .output/ copied in would silently ship instead of a fresh
+# `nuxt generate`.
+node_modules
+.nuxt
+.nitro
+.output
+.cache
+dist
+
+.git
+.gitignore
+.github
+
+.env
+.env.*
+*.log*
+.DS_Store
+
+Dockerfile
+.dockerignore
+compose.yaml
+compose.*.yaml
+docker-compose*.yml
+
+# nginx/ is intentionally NOT ignored -- the runtime stage copies
+# nginx/nginx.conf out of the context.
