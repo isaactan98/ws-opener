@@ -1,0 +1,54 @@
+# Homelab deployment.
+#
+#   docker compose pull && docker compose up -d        # from GHCR
+#   docker compose up -d --build                       # build locally instead
+#
+# The published port is bound to loopback deliberately. Tailscale Serve
+# terminates TLS on the host and proxies to 127.0.0.1:8080, and that real
+# certificate is what makes the page a *secure context* -- which the clipboard
+# paste tray needs in order to work at all. Publishing on a bare LAN address
+# over http:// would leave the tray permanently invisible.
+#
+#   tailscale serve --bg --https=443 8080
+#
+# To reach it over plain LAN HTTP as well (accepting that the paste tray dies),
+# change the mapping below to "${WS_OPENER_PORT:-8080}:8080".
+
+name: ws-opener
+
+services:
+  web:
+    image: ghcr.io/isaactan98/ws-opener:latest
+
+    # Kept so the stack still comes up without the registry, e.g. while
+    # testing a change before it is merged and published.
+    build:
+      context: .
+
+    container_name: ws-opener
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:${WS_OPENER_PORT:-8080}:8080"
+
+    # Nothing in the image writes anywhere except nginx's pid file and temp
+    # directories, and nginx/nginx.conf points both at /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    # Static file serving on port 8080 as a non-root user needs no
+    # capabilities at all.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+    # A 250 KB static site does not need a GB of page cache or an unbounded
+    # log file on a homelab box.
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
